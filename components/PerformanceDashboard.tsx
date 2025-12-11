@@ -438,58 +438,165 @@ const SyllabusComprehensiveAnalysis: React.FC<{ reports: SyllabusCoverageReport[
     const [filter, setFilter] = useState('all');
     const [selectedGrade, setSelectedGrade] = useState('');
     const [selectedSubject, setSelectedSubject] = useState('');
-    const [extraFilter, setExtraFilter] = useState(''); // New filter for status/metrics
+    const [extraFilter, setExtraFilter] = useState('all'); // Changed default to 'all' for clarity
+    const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
     const teacherMap = useMemo(() => new Map(teachers.map(t => [t.id, t.name])), [teachers]);
 
+    // 1. Filter reports by Date, Grade, Subject
     const filteredReports = useMemo(() => {
         let result = reports;
+        
+        // Date Range Filter
+        if (dateRange.start && dateRange.end) {
+            const startDate = new Date(dateRange.start);
+            const endDate = new Date(dateRange.end);
+            result = result.filter(r => {
+                const rDate = new Date(r.date);
+                return rDate >= startDate && rDate <= endDate;
+            });
+        }
+
         if (filter === 'grade' && selectedGrade) result = result.filter(r => r.grade === selectedGrade);
         if (filter === 'subject' && selectedSubject) result = result.filter(r => r.subject === selectedSubject);
         
-        // Extra Filters Logic
-        if (extraFilter === 'ahead') result = result.filter(r => r.branches.some(b => b.status === 'ahead'));
-        if (extraFilter === 'behind') result = result.filter(r => r.branches.some(b => b.status === 'behind'));
-        if (extraFilter === 'on_track') result = result.filter(r => r.branches.every(b => b.status === 'on_track'));
-        // Filters for metrics existence
-        if (extraFilter === 'meetings') result = result.filter(r => r.meetingsAttended && r.meetingsAttended !== '0');
-        if (extraFilter === 'correction') result = result.filter(r => r.notebookCorrection && r.notebookCorrection !== '0');
-        if (extraFilter === 'prep') result = result.filter(r => r.preparationBook && r.preparationBook !== '0');
-        if (extraFilter === 'glossary') result = result.filter(r => r.questionsGlossary && r.questionsGlossary !== '0');
-        if (extraFilter === 'peer_visits') result = result.filter(r => r.peerVisitsDone);
-        if (extraFilter === 'strategies') result = result.filter(r => r.strategiesImplemented);
-        if (extraFilter === 'tools') result = result.filter(r => r.toolsUsed);
-        if (extraFilter === 'sources') result = result.filter(r => r.sourcesUsed);
-        if (extraFilter === 'programs') result = result.filter(r => r.programsImplemented);
-
         return result;
-    }, [reports, filter, selectedGrade, selectedSubject, extraFilter]);
+    }, [reports, filter, selectedGrade, selectedSubject, dateRange]);
+
+    // 2. Aggregate data by Teacher
+    interface AggregatedTeacherData {
+        teacherId: string;
+        name: string;
+        subject: string;
+        grade: string;
+        meetingsAttended: number;
+        notebookCorrectionAvg: number;
+        preparationBookAvg: number;
+        questionsGlossaryAvg: number;
+        reportsCount: number;
+        status: 'ahead' | 'on_track' | 'behind'; // Derived from latest report in range
+        lessonDifference: number; // Derived from latest report
+        // Qualitative Data Sets
+        strategies: Set<string>;
+        tools: Set<string>;
+        sources: Set<string>;
+        programs: Set<string>;
+        tasks: Set<string>;
+        tests: Set<string>;
+        peerVisits: Set<string>;
+    }
+
+    const aggregatedData = useMemo(() => {
+        const aggregated: { [key: string]: AggregatedTeacherData } = {};
+
+        // Sort reports by date (oldest to newest) to correctly determine latest status
+        const sortedReports = [...filteredReports].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        sortedReports.forEach(r => {
+            if (!aggregated[r.teacherId]) {
+                aggregated[r.teacherId] = {
+                    teacherId: r.teacherId,
+                    name: teacherMap.get(r.teacherId) || 'Unknown',
+                    subject: r.subject, // Assumes main subject/grade context or first one found
+                    grade: r.grade,
+                    meetingsAttended: 0,
+                    notebookCorrectionAvg: 0,
+                    preparationBookAvg: 0,
+                    questionsGlossaryAvg: 0,
+                    reportsCount: 0,
+                    status: 'on_track',
+                    lessonDifference: 0,
+                    strategies: new Set(),
+                    tools: new Set(),
+                    sources: new Set(),
+                    programs: new Set(),
+                    tasks: new Set(),
+                    tests: new Set(),
+                    peerVisits: new Set(),
+                };
+            }
+
+            const agg = aggregated[r.teacherId];
+            agg.reportsCount++;
+            
+            // Sum meetings
+            agg.meetingsAttended += Number(r.meetingsAttended || 0);
+            
+            // Accumulate percentages (will divide later)
+            agg.notebookCorrectionAvg += parseFloat(r.notebookCorrection || '0');
+            agg.preparationBookAvg += parseFloat(r.preparationBook || '0');
+            agg.questionsGlossaryAvg += parseFloat(r.questionsGlossary || '0');
+
+            // Collect unique qualitative items
+            const splitter = (s?: string) => (s || '').split(/[,،\n]/).map(x => x.trim()).filter(Boolean);
+            splitter(r.strategiesImplemented).forEach(s => agg.strategies.add(s));
+            splitter(r.toolsUsed).forEach(s => agg.tools.add(s));
+            splitter(r.sourcesUsed).forEach(s => agg.sources.add(s));
+            splitter(r.programsImplemented).forEach(s => agg.programs.add(s));
+            splitter(r.tasksDone).forEach(s => agg.tasks.add(s));
+            splitter(r.testsDelivered).forEach(s => agg.tests.add(s));
+            splitter(r.peerVisitsDone).forEach(s => agg.peerVisits.add(s));
+
+            // Determine latest status (reports are sorted by date)
+            const isAhead = r.branches.some(b => b.status === 'ahead');
+            const isBehind = r.branches.some(b => b.status === 'behind');
+            
+            if (isBehind) {
+                agg.status = 'behind';
+                // Find max difference for behind status
+                const maxDiff = Math.max(...r.branches.filter(b => b.status === 'behind').map(b => Number(b.lessonDifference) || 0));
+                agg.lessonDifference = maxDiff;
+            } else if (isAhead) {
+                agg.status = 'ahead';
+                const maxDiff = Math.max(...r.branches.filter(b => b.status === 'ahead').map(b => Number(b.lessonDifference) || 0));
+                agg.lessonDifference = maxDiff;
+            } else {
+                agg.status = 'on_track';
+                agg.lessonDifference = 0;
+            }
+        });
+
+        // Finalize averages
+        return Object.values(aggregated).map(agg => ({
+            ...agg,
+            notebookCorrectionAvg: agg.reportsCount > 0 ? (agg.notebookCorrectionAvg / agg.reportsCount).toFixed(1) : 0,
+            preparationBookAvg: agg.reportsCount > 0 ? (agg.preparationBookAvg / agg.reportsCount).toFixed(1) : 0,
+            questionsGlossaryAvg: agg.reportsCount > 0 ? (agg.questionsGlossaryAvg / agg.reportsCount).toFixed(1) : 0,
+        }));
+
+    }, [filteredReports, teacherMap]);
+
 
     const handleExport = (format: 'txt' | 'pdf' | 'excel' | 'whatsapp') => {
-        const data = [`📊 ${t('syllabusCoverageReport')} - ${filteredReports.length} reports`];
-        filteredReports.forEach(r => {
-            const tName = teacherMap.get(r.teacherId);
-            data.push(`\n👤 ${tName} (${r.subject} - ${r.grade})`);
-            r.branches.forEach(b => data.push(`  - ${b.branchName}: ${b.status} ${b.lessonDifference ? `(${b.lessonDifference})` : ''}`));
-            if(r.meetingsAttended) data.push(`  - ${t('meetingsAttended')}: ${r.meetingsAttended}`);
-            if(r.notebookCorrection) data.push(`  - ${t('notebookCorrection')}: ${r.notebookCorrection}%`);
-            // Add more fields as needed for summary export
+        const data = [`📊 ${t('syllabusCoverageReport')} (مجمع) - ${aggregatedData.length} معلم`];
+        aggregatedData.forEach(agg => {
+            data.push(`\n👤 ${agg.name} (${agg.subject} - ${agg.grade})`);
+            const statusText = agg.status === 'behind' ? t('statusBehind') : (agg.status === 'ahead' ? t('statusAhead') : t('statusOnTrack'));
+            data.push(`  - الحالة: ${statusText} ${agg.lessonDifference ? `(${agg.lessonDifference} درس)` : ''}`);
+            if(agg.meetingsAttended > 0) data.push(`  - إجمالي ${t('meetingsAttended')}: ${agg.meetingsAttended}`);
+            if(Number(agg.notebookCorrectionAvg) > 0) data.push(`  - متوسط ${t('notebookCorrection')}: ${agg.notebookCorrectionAvg}%`);
+            // Add summarized text items if needed
         });
         exportSupervisorySummaryUtil({ format, title: t('syllabusCoverageReport'), data, t });
     };
 
-    const renderMetricList = (title: string, extractor: (r: SyllabusCoverageReport) => string | undefined, isPercentage = false) => {
-        const items = filteredReports.map(r => {
-            const val = extractor(r);
-            if (!val || val === '0') return null;
-            return { name: teacherMap.get(r.teacherId), subject: r.subject, grade: r.grade, val: isPercentage ? val + '%' : val };
+    const renderMetricList = (title: string, valueKey: keyof AggregatedTeacherData, isPercentage = false) => {
+        const items = aggregatedData.map(agg => {
+            const val = agg[valueKey];
+            if (!val || val == 0 || val === '0.0') return null;
+            return { 
+                name: agg.name, 
+                subject: agg.subject, 
+                grade: agg.grade, 
+                val: isPercentage ? val + '%' : val 
+            };
         }).filter(Boolean);
 
         if (items.length === 0) return null;
 
         return (
-            <div className="border rounded-lg mb-4 overflow-hidden">
-                <div className="bg-gray-100 p-2 font-bold text-primary flex justify-between">
+            <div className="border rounded-lg mb-4 overflow-hidden shadow-sm">
+                <div className="bg-gray-100 p-3 font-bold text-primary flex justify-between">
                     <span>{title}</span>
                     <span className="text-gray-600 text-sm">({items.length})</span>
                 </div>
@@ -500,7 +607,7 @@ const SyllabusComprehensiveAnalysis: React.FC<{ reports: SyllabusCoverageReport[
                                 <tr key={idx} className="border-b last:border-0 hover:bg-gray-50">
                                     <td className="p-2 font-semibold w-1/3">{item!.name}</td>
                                     <td className="p-2 text-gray-600 w-1/3">{item!.subject} - {item!.grade}</td>
-                                    <td className="p-2 font-bold text-blue-600">{item!.val}</td>
+                                    <td className="p-2 font-bold text-blue-600 text-center">{item!.val}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -510,18 +617,23 @@ const SyllabusComprehensiveAnalysis: React.FC<{ reports: SyllabusCoverageReport[
         );
     };
 
-    const renderTextList = (title: string, extractor: (r: SyllabusCoverageReport) => string | undefined) => {
-        const items = filteredReports.map(r => {
-            const val = extractor(r);
-            if (!val) return null;
-            return { name: teacherMap.get(r.teacherId), subject: r.subject, grade: r.grade, val };
+    const renderTextList = (title: string, setKey: keyof AggregatedTeacherData) => {
+        const items = aggregatedData.map(agg => {
+            const set = agg[setKey] as Set<string>;
+            if (set.size === 0) return null;
+            return { 
+                name: agg.name, 
+                subject: agg.subject, 
+                grade: agg.grade, 
+                val: Array.from(set).join('، ') 
+            };
         }).filter(Boolean);
 
         if (items.length === 0) return null;
 
         return (
-            <div className="border rounded-lg mb-4">
-                <div className="bg-gray-100 p-2 font-bold text-primary">{title} ({items.length})</div>
+            <div className="border rounded-lg mb-4 shadow-sm">
+                <div className="bg-gray-100 p-3 font-bold text-primary">{title} ({items.length})</div>
                 <div className="max-h-60 overflow-y-auto p-2 space-y-2">
                     {items.map((item, idx) => (
                         <div key={idx} className="border-b pb-2 last:border-0">
@@ -529,7 +641,7 @@ const SyllabusComprehensiveAnalysis: React.FC<{ reports: SyllabusCoverageReport[
                                 <span>{item!.name}</span>
                                 <span className="text-gray-500 font-normal">{item!.subject} - {item!.grade}</span>
                             </div>
-                            <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">{item!.val}</p>
+                            <p className="text-sm text-gray-700 mt-1 leading-relaxed">{item!.val}</p>
                         </div>
                     ))}
                 </div>
@@ -538,82 +650,103 @@ const SyllabusComprehensiveAnalysis: React.FC<{ reports: SyllabusCoverageReport[
     };
 
     // Syllabus Status Groups
-    const ahead = filteredReports.filter(r => r.branches.some(b => b.status === 'ahead'));
-    const behind = filteredReports.filter(r => r.branches.some(b => b.status === 'behind'));
-    const onTrack = filteredReports.filter(r => r.branches.every(b => b.status === 'on_track'));
+    const ahead = aggregatedData.filter(agg => agg.status === 'ahead');
+    const behind = aggregatedData.filter(agg => agg.status === 'behind');
+    const onTrack = aggregatedData.filter(agg => agg.status === 'on_track');
 
+    // Selective Rendering Logic based on extraFilter
+    const showAll = extraFilter === 'all';
+    
     return (
         <div>
             {/* Filter Bar */}
-            <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg mb-4 border">
-                <select value={filter} onChange={e => setFilter(e.target.value)} className="p-2 border rounded text-sm">
-                    <option value="all">{t('allSubjectsAndGrades')}</option>
-                    <option value="grade">{t('byGrade')}</option>
-                    <option value="subject">{t('bySubject')}</option>
-                </select>
-                {filter === 'grade' && <select value={selectedGrade} onChange={e => setSelectedGrade(e.target.value)} className="p-2 border rounded text-sm">{GRADES.map(g => <option key={g} value={g}>{g}</option>)}</select>}
-                {filter === 'subject' && <select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className="p-2 border rounded text-sm">{SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}</select>}
+            <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg mb-4 border items-end">
+                <div className="flex-grow min-w-[200px]">
+                    <label className="text-xs font-semibold block mb-1">الفلاتر العامة</label>
+                    <div className="flex gap-2">
+                        <select value={filter} onChange={e => setFilter(e.target.value)} className="p-2 border rounded text-sm w-full">
+                            <option value="all">{t('allSubjectsAndGrades')}</option>
+                            <option value="grade">{t('byGrade')}</option>
+                            <option value="subject">{t('bySubject')}</option>
+                        </select>
+                        {filter === 'grade' && <select value={selectedGrade} onChange={e => setSelectedGrade(e.target.value)} className="p-2 border rounded text-sm w-full">{GRADES.map(g => <option key={g} value={g}>{g}</option>)}</select>}
+                        {filter === 'subject' && <select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} className="p-2 border rounded text-sm w-full">{SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}</select>}
+                    </div>
+                </div>
+
+                <div className="flex-grow min-w-[300px]">
+                    <label className="text-xs font-semibold block mb-1">الفترة الزمنية</label>
+                    <div className="flex gap-2">
+                        <input type="date" value={dateRange.start} onChange={e => setDateRange(p => ({...p, start: e.target.value}))} className="p-2 border rounded text-sm w-full" placeholder={t('from_date')} />
+                        <input type="date" value={dateRange.end} onChange={e => setDateRange(p => ({...p, end: e.target.value}))} className="p-2 border rounded text-sm w-full" placeholder={t('to_date')} />
+                    </div>
+                </div>
                 
-                <select value={extraFilter} onChange={e => setExtraFilter(e.target.value)} className="p-2 border rounded text-sm font-semibold text-primary">
-                    <option value="">كل المعايير</option>
-                    <option value="ahead">{t('statusAhead')}</option>
-                    <option value="behind">{t('statusBehind')}</option>
-                    <option value="on_track">{t('statusOnTrack')}</option>
-                    <option value="meetings">{t('meetingsAttended')}</option>
-                    <option value="correction">{t('notebookCorrection')}</option>
-                    <option value="prep">{t('preparationBook')}</option>
-                    <option value="glossary">{t('questionsGlossary')}</option>
-                    <option value="peer_visits">{t('peerVisitsDone')}</option>
-                    <option value="strategies">{t('strategiesUsed')}</option>
-                    <option value="tools">{t('toolsUsed')}</option>
-                    <option value="sources">{t('sourcesUsed')}</option>
-                    <option value="programs">{t('programsUsed')}</option>
-                </select>
+                <div className="flex-grow min-w-[200px]">
+                    <label className="text-xs font-semibold block mb-1 text-primary">فلتر المعايير (عرض مخصص)</label>
+                    <select value={extraFilter} onChange={e => setExtraFilter(e.target.value)} className="p-2 border rounded text-sm font-semibold text-primary w-full shadow-sm ring-1 ring-primary/20">
+                        <option value="all">كل المعايير (عرض شامل)</option>
+                        <option value="status">{t('status')}</option>
+                        <option value="meetings">{t('meetingsAttended')}</option>
+                        <option value="correction">{t('notebookCorrection')}</option>
+                        <option value="prep">{t('preparationBook')}</option>
+                        <option value="glossary">{t('questionsGlossary')}</option>
+                        <option value="peer_visits">{t('peerVisitsDone')}</option>
+                        <option value="strategies">{t('strategiesUsed')}</option>
+                        <option value="tools">{t('toolsUsed')}</option>
+                        <option value="sources">{t('sourcesUsed')}</option>
+                        <option value="programs">{t('programsUsed')}</option>
+                        <option value="tasks">{t('tasksDone')}</option>
+                        <option value="tests">{t('testsDelivered')}</option>
+                    </select>
+                </div>
             </div>
 
             {/* Syllabus Status Section */}
+            {(showAll || extraFilter === 'status') && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="border rounded-lg p-3 bg-green-50">
-                    <h5 className="font-bold text-green-800 mb-2">{t('onTrackWithSyllabus')} ({onTrack.length})</h5>
+                <div className="border rounded-lg p-3 bg-green-50 shadow-sm">
+                    <h5 className="font-bold text-green-800 mb-2 border-b border-green-200 pb-1">{t('onTrackWithSyllabus')} ({onTrack.length})</h5>
                     <ul className="text-sm list-disc list-inside max-h-40 overflow-y-auto">
-                        {onTrack.map(r => <li key={r.id}>{teacherMap.get(r.teacherId)} <span className="text-xs text-gray-500">({r.subject})</span></li>)}
+                        {onTrack.map((agg, i) => <li key={i}>{agg.name} <span className="text-xs text-gray-500">({agg.subject})</span></li>)}
                     </ul>
                 </div>
-                <div className="border rounded-lg p-3 bg-blue-50">
-                    <h5 className="font-bold text-blue-800 mb-2">{t('aheadOfSyllabus')} ({ahead.length})</h5>
+                <div className="border rounded-lg p-3 bg-blue-50 shadow-sm">
+                    <h5 className="font-bold text-blue-800 mb-2 border-b border-blue-200 pb-1">{t('aheadOfSyllabus')} ({ahead.length})</h5>
                     <ul className="text-sm list-disc list-inside max-h-40 overflow-y-auto">
-                        {ahead.map(r => {
-                            const branch = r.branches.find(b => b.status === 'ahead');
-                            return <li key={r.id}>{teacherMap.get(r.teacherId)} <span className="text-xs text-gray-500">({r.subject} - {branch?.lessonDifference} درس)</span></li>
-                        })}
+                        {ahead.map((agg, i) => (
+                            <li key={i}>{agg.name} <span className="text-xs text-gray-500">({agg.subject} - {agg.lessonDifference} درس)</span></li>
+                        ))}
                     </ul>
                 </div>
-                <div className="border rounded-lg p-3 bg-red-50">
-                    <h5 className="font-bold text-red-800 mb-2">{t('behindSyllabus')} ({behind.length})</h5>
+                <div className="border rounded-lg p-3 bg-red-50 shadow-sm">
+                    <h5 className="font-bold text-red-800 mb-2 border-b border-red-200 pb-1">{t('behindSyllabus')} ({behind.length})</h5>
                     <ul className="text-sm list-disc list-inside max-h-40 overflow-y-auto">
-                        {behind.map(r => {
-                            const branch = r.branches.find(b => b.status === 'behind');
-                            return <li key={r.id}>{teacherMap.get(r.teacherId)} <span className="text-xs text-gray-500">({r.subject} - {branch?.lessonDifference} درس)</span></li>
-                        })}
+                        {behind.map((agg, i) => (
+                            <li key={i}>{agg.name} <span className="text-xs text-gray-500">({agg.subject} - {agg.lessonDifference} درس)</span></li>
+                        ))}
                     </ul>
                 </div>
             </div>
+            )}
 
             {/* Quantitative Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {renderMetricList(t('meetingsAttended'), r => r.meetingsAttended)}
-                {renderMetricList(t('notebookCorrection'), r => r.notebookCorrection, true)}
-                {renderMetricList(t('preparationBook'), r => r.preparationBook, true)}
-                {renderMetricList(t('questionsGlossary'), r => r.questionsGlossary, true)}
+                {(showAll || extraFilter === 'meetings') && renderMetricList(t('meetingsAttended'), 'meetingsAttended')}
+                {(showAll || extraFilter === 'correction') && renderMetricList(t('notebookCorrection') + ' (متوسط)', 'notebookCorrectionAvg', true)}
+                {(showAll || extraFilter === 'prep') && renderMetricList(t('preparationBook') + ' (متوسط)', 'preparationBookAvg', true)}
+                {(showAll || extraFilter === 'glossary') && renderMetricList(t('questionsGlossary') + ' (متوسط)', 'questionsGlossaryAvg', true)}
             </div>
 
             {/* Qualitative Metrics */}
             <div className="space-y-4 mt-4">
-                {renderTextList(t('peerVisitsDone'), r => r.peerVisitsDone)}
-                {renderTextList(t('strategiesUsed'), r => r.strategiesImplemented)}
-                {renderTextList(t('toolsUsed'), r => r.toolsUsed)}
-                {renderTextList(t('sourcesUsed'), r => r.sourcesUsed)}
-                {renderTextList(t('programsUsed'), r => r.programsImplemented)}
+                {(showAll || extraFilter === 'peer_visits') && renderTextList(t('peerVisitsDone'), 'peerVisits')}
+                {(showAll || extraFilter === 'strategies') && renderTextList(t('strategiesUsed'), 'strategies')}
+                {(showAll || extraFilter === 'tools') && renderTextList(t('toolsUsed'), 'tools')}
+                {(showAll || extraFilter === 'sources') && renderTextList(t('sourcesUsed'), 'sources')}
+                {(showAll || extraFilter === 'programs') && renderTextList(t('programsUsed'), 'programs')}
+                {(showAll || extraFilter === 'tasks') && renderTextList(t('tasksDone'), 'tasks')}
+                {(showAll || extraFilter === 'tests') && renderTextList(t('testsDelivered'), 'tests')}
             </div>
 
             <ExportButtons onExport={handleExport} />
