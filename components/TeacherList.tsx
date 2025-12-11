@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Teacher } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -151,7 +152,15 @@ const TeacherList: React.FC<TeacherListProps> = ({ teachers, onSelectTeacher, ad
     if (newTeacherName.trim()) {
       addTeacher({ name: newTeacherName.trim() });
       setNewTeacherName('');
+    } else {
+        alert('يرجى كتابة اسم المعلم أولاً.');
     }
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+          handleAddTeacher();
+      }
   };
   
   const handleBulkAdd = () => {
@@ -208,9 +217,13 @@ const TeacherList: React.FC<TeacherListProps> = ({ teachers, onSelectTeacher, ad
                   className="flex-grow w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition"
                   value={newTeacherName}
                   onChange={(e) => setNewTeacherName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddTeacher()}
+                  onKeyDown={handleKeyDown}
               />
-              <button onClick={handleAddTeacher} className="w-full sm:w-auto px-6 py-3 bg-primary text-white font-bold rounded-lg hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2 transform hover:scale-105">
+              <button 
+                type="button"
+                onClick={handleAddTeacher}
+                className="w-full sm:w-auto px-6 py-3 bg-primary text-white font-bold rounded-lg hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2 transform hover:scale-105"
+              >
                   <PlusIcon />
                   <span>{t('add')}</span>
               </button>
@@ -288,7 +301,7 @@ const TeacherList: React.FC<TeacherListProps> = ({ teachers, onSelectTeacher, ad
               </div>
             ))
           ) : (
-            <p className="text-gray-500 text-center py-8">{t('selectTeacherToViewReports')}</p>
+            <p className="text-gray-500 text-center py-8">{teachers.length === 0 ? 'لا يوجد معلمين مضافين لهذه المدرسة بعد' : t('selectTeacherToViewReports')}</p>
           )}
         </div>
       </div>
