@@ -642,6 +642,15 @@ export const exportSyllabusCoverage = (
         const ws = XLSX.utils.aoa_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Syllabus Report");
+
+        // NEW: Raw Data Sheet for re-import
+        const flatReport = { ...report };
+        // Serialize branches array to string so it fits in one cell
+        (flatReport as any).branches = JSON.stringify(report.branches);
+        
+        const wsRaw = XLSX.utils.json_to_sheet([flatReport]);
+        XLSX.utils.book_append_sheet(wb, wsRaw, "RawData");
+
         XLSX.writeFile(wb, `${filename}.xlsx`);
     }
 };

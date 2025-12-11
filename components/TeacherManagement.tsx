@@ -640,8 +640,7 @@ const TeacherManagement: React.FC<TeacherManagementProps> = (props) => {
             <button 
                 onClick={() => { 
                     setSelectedTeacher(null); 
-                    // Explicitly set view after state update to avoid batching issues or logic traps
-                    setTimeout(() => setActiveView('teachers'), 0); 
+                    setActiveView('teachers');
                 }} 
                 className={getButtonClass('teachers')}
             >
