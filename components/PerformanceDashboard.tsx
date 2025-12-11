@@ -569,14 +569,26 @@ const SyllabusComprehensiveAnalysis: React.FC<{ reports: SyllabusCoverageReport[
 
     const handleExport = (format: 'txt' | 'pdf' | 'excel' | 'whatsapp') => {
         const data = [`📊 ${t('syllabusCoverageReport')} (مجمع) - ${aggregatedData.length} معلم`];
+        
+        if (dateRange.start && dateRange.end) {
+            data.push(`📅 الفترة: من ${dateRange.start} إلى ${dateRange.end}`);
+        }
+
         aggregatedData.forEach(agg => {
-            data.push(`\n👤 ${agg.name} (${agg.subject} - ${agg.grade})`);
+            let entry = `\n👤 *${agg.name}* (${agg.subject} - ${agg.grade})`;
             const statusText = agg.status === 'behind' ? t('statusBehind') : (agg.status === 'ahead' ? t('statusAhead') : t('statusOnTrack'));
-            data.push(`  - الحالة: ${statusText} ${agg.lessonDifference ? `(${agg.lessonDifference} درس)` : ''}`);
-            if(agg.meetingsAttended > 0) data.push(`  - إجمالي ${t('meetingsAttended')}: ${agg.meetingsAttended}`);
-            if(Number(agg.notebookCorrectionAvg) > 0) data.push(`  - متوسط ${t('notebookCorrection')}: ${agg.notebookCorrectionAvg}%`);
-            // Add summarized text items if needed
+            entry += `\n   • الحالة: ${statusText} ${agg.lessonDifference ? `(${agg.lessonDifference} درس)` : ''}`;
+            
+            if(agg.meetingsAttended > 0) entry += `\n   • إجمالي ${t('meetingsAttended')}: ${agg.meetingsAttended}`;
+            if(Number(agg.notebookCorrectionAvg) > 0) entry += `\n   • متوسط ${t('notebookCorrection')}: ${agg.notebookCorrectionAvg}%`;
+            
+            // Add qualitative summaries if they exist and we are not filtering tightly
+            if (agg.strategies.size > 0) entry += `\n   • الاستراتيجيات: ${Array.from(agg.strategies).slice(0, 3).join(', ')}...`;
+            
+            data.push(entry);
         });
+        
+        // Use the utility function which now handles array joining and encoding properly for WhatsApp
         exportSupervisorySummaryUtil({ format, title: t('syllabusCoverageReport'), data, t });
     };
 

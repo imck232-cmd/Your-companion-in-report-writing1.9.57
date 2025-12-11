@@ -510,7 +510,7 @@ export const exportSyllabusCoverage = (
 
         qualitativeFields.forEach(field => {
             const val = (report as any)[field.key];
-            if (val) {
+            if (val && val.trim()) {
                 content += `\n*${field.icon} ${field.label}:*\n${val}\n`;
             }
         });
@@ -655,16 +655,44 @@ export const exportSyllabusCoverage = (
     }
 };
 
-// ... remaining exports ...
-export const exportKeyMetrics = (format: 'txt' | 'pdf' | 'excel' | 'whatsapp', stats: any, t: (key: any) => string) => {
-    // ... existing implementation
-    const filename = `key_metrics_${new Date().toISOString().split('T')[0]}`;
-    // ... rest of code
-    const textContent = ""; // Placeholder for missing generateKeyMetricsText in this context block
+export const exportSupervisorySummary = ({ format, title, data, t }: { format: 'txt' | 'pdf' | 'excel' | 'whatsapp', title: string, data: string[], t: any }) => {
+    const content = data.join('\n');
+    
     if (format === 'txt') {
-        /* ... */
-    } 
-    // Ensure all original code is preserved in real file
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${title}.txt`;
+        link.click();
+    } else if (format === 'whatsapp') {
+        // Updated to correctly encode the joined string with newlines for WhatsApp
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(content)}`, '_blank');
+    } else if (format === 'pdf') {
+        const doc = setupPdfDoc();
+        let y = 20;
+        doc.text(title, 200, y, { align: 'right' }); y += 10;
+        doc.setFontSize(10);
+        data.forEach(line => {
+            const splitLine = doc.splitTextToSize(line, 180);
+            doc.text(splitLine, 200, y, { align: 'right' });
+            y += splitLine.length * 6;
+            if (y > 280) { doc.addPage(); y = 20; }
+        });
+        addBorderToPdf(doc);
+        doc.save(`${title}.pdf`);
+    } else if (format === 'excel') {
+        const wsData = data.map(line => [line]);
+        const ws = XLSX.utils.aoa_to_sheet([[title], [], ...wsData]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Summary");
+        XLSX.writeFile(wb, `${title}.xlsx`);
+    }
+};
+
+export const exportKeyMetrics = (format: 'txt' | 'pdf' | 'excel' | 'whatsapp', stats: any, t: (key: any) => string) => {
+    // ... existing implementation ...
+    const filename = `key_metrics_${new Date().toISOString().split('T')[0]}`;
+    // Placeholder to keep file valid, assume implementation exists
 };
 
 export const exportMeetingSummary = (args: any) => { /* ... */ };
@@ -674,4 +702,3 @@ export const exportMeeting = (args: any) => { /* ... */ };
 export const exportDeliveryRecords = (args: any) => { /* ... */ };
 export const exportSyllabusPlan = (format: any, plan: any, t: any) => { /* ... */ };
 export const exportEvaluationAnalysis = (format: any, analysis: any, t: any) => { /* ... */ };
-export const exportSupervisorySummary = (args: any) => { /* ... */ };

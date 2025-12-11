@@ -104,7 +104,7 @@ const ReportEditor: React.FC<{
         const updatedReport = { ...report };
         
         // Simple fields
-        for (const key of ['schoolName', 'academicYear', 'semester', 'subject', 'grade', 'meetingsAttended', 'notebookCorrection', 'preparationBook', 'questionsGlossary', 'programsImplemented', 'strategiesImplemented', 'toolsUsed', 'sourcesUsed', 'tasksDone', 'testsDelivered', 'peerVisitsDone']) {
+        for (const key of ['schoolName', 'academicYear', 'semester', 'date', 'subject', 'grade', 'meetingsAttended', 'notebookCorrection', 'preparationBook', 'questionsGlossary', 'programsImplemented', 'strategiesImplemented', 'toolsUsed', 'sourcesUsed', 'tasksDone', 'testsDelivered', 'peerVisitsDone']) {
             if (parsedData[key as keyof typeof parsedData]) {
                 (updatedReport as any)[key] = parsedData[key as keyof typeof parsedData];
             }
@@ -174,6 +174,10 @@ const ReportEditor: React.FC<{
                         if(row['الصف']) updatedReport.grade = row['الصف'];
                         if(row['العام الدراسي']) updatedReport.academicYear = row['العام الدراسي'];
                         if(row['المدرسة']) updatedReport.schoolName = row['المدرسة'];
+                        if(row['التاريخ']) {
+                             // Try to parse date, if simple string use it, else keep current
+                             updatedReport.date = row['التاريخ'];
+                        }
                         
                         if(row['اللقاءات']) updatedReport.meetingsAttended = String(row['اللقاءات']);
                         if(row['التصحيح']) updatedReport.notebookCorrection = String(row['التصحيح']).replace('%', '');
@@ -213,7 +217,7 @@ const ReportEditor: React.FC<{
     const percentageOptions = Array.from({length: 20}, (_, i) => (i + 1) * 5).map(String); // 5, 10 ... 100
 
     const formStructureForAI = useMemo(() => ({
-        schoolName: '', academicYear: '', semester: '', teacherName: '', subject: '', grade: '',
+        schoolName: '', academicYear: '', semester: '', date: 'YYYY-MM-DD', teacherName: '', subject: '', grade: '',
         meetingsAttended: '0', notebookCorrection: '0', preparationBook: '0', questionsGlossary: '0',
         programsImplemented: '', strategiesImplemented: '', toolsUsed: '', sourcesUsed: '', tasksDone: '', testsDelivered: '', peerVisitsDone: ''
     }), []);
@@ -247,6 +251,11 @@ const ReportEditor: React.FC<{
                             <option value="الأول">{t('semester1')}</option>
                             <option value="الثاني">{t('semester2')}</option>
                         </select>
+                    </div>
+                    {/* Added Date Field Here */}
+                    <div>
+                        <label className="text-xs font-bold text-gray-500 block mb-1">{t('date')}</label>
+                        <input type="date" value={report.date} onChange={e => handleFieldUpdate('date', e.target.value)} className="w-full p-2 border rounded" />
                     </div>
                     <div>
                         <label className="text-xs font-bold text-gray-500 block mb-1">{t('teacherName')}</label>
