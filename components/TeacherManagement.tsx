@@ -636,7 +636,18 @@ const TeacherManagement: React.FC<TeacherManagementProps> = (props) => {
         {hasPermission('view_supervisory_plan') && <button onClick={() => setActiveView('supervisory_plan')} className={getButtonClass('supervisory_plan')}>{t('supervisoryPlan')}</button>}
         {hasPermission('view_task_plan') && <button onClick={() => setActiveView('task_plan')} className={getButtonClass('task_plan')}>{t('taskPlan')}</button>}
         {hasPermission('view_supervisory_tools') && <button onClick={() => setActiveView('supervisory_tools')} className={getButtonClass('supervisory_tools')}>{t('supervisoryTools')}</button>}
-        {hasPermission('view_teachers') && <button onClick={() => { setActiveView('teachers'); setSelectedTeacher(null); }} className={getButtonClass('teachers')}>{t('manageTeachersAndReports')}</button>}
+        {hasPermission('view_teachers') && (
+            <button 
+                onClick={() => { 
+                    setSelectedTeacher(null); 
+                    // Explicitly set view after state update to avoid batching issues or logic traps
+                    setTimeout(() => setActiveView('teachers'), 0); 
+                }} 
+                className={getButtonClass('teachers')}
+            >
+                {t('manageTeachersAndReports')}
+            </button>
+        )}
         {hasPermission('view_syllabus_coverage') && <button onClick={() => setActiveView('syllabus_coverage')} className={getButtonClass('syllabus_coverage')}>{t('syllabusCoverageReport')}</button>}
         
         {hasPermission('manage_criteria') && (

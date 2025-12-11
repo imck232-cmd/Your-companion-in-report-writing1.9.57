@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useCallback } from 'react';
 import { Report, Teacher, GeneralEvaluationReport, ClassSessionEvaluationReport, SpecialReport, Task, Meeting, PeerVisit, DeliverySheet, SyllabusCoverageReport, GeneralCriterion, ClassSessionCriterionGroup, MeetingOutcome } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -444,7 +445,56 @@ const SupervisoryReportsView: React.FC<PerformanceDashboardProps> = (props) => {
                 <PeerVisitsReport {...props} />
             </Section>
             <Section title={t('deliveryRecordsReport')}><DeliveryRecordsReport {...props} /></Section>
-            <Section title={t('syllabusCoverageReport')}><SyllabusCoverageProgressReport {...props} /></Section>
+            <Section title={t('syllabusCoverageReport')}>
+                <SyllabusDetailedMetrics reports={props.syllabusCoverageReports} />
+                <SyllabusCoverageProgressReport {...props} />
+            </Section>
+        </div>
+    );
+};
+
+const SyllabusDetailedMetrics: React.FC<{ reports: SyllabusCoverageReport[] }> = ({ reports }) => {
+    const { t } = useLanguage();
+
+    const stats = useMemo(() => {
+        if (reports.length === 0) return null;
+
+        const sum = (acc: number, val: number) => acc + val;
+        const parsePercent = (val: string | undefined) => val ? parseFloat(val.replace('%', '')) : 0;
+
+        const meetings = reports.map(r => parseInt(r.meetingsAttended || '0')).filter(n => !isNaN(n));
+        const corrections = reports.map(r => parsePercent(r.notebookCorrection));
+        const preps = reports.map(r => parsePercent(r.preparationBook));
+        const glossary = reports.map(r => parsePercent(r.questionsGlossary));
+
+        const avgMeetings = meetings.length ? (meetings.reduce(sum, 0) / meetings.length).toFixed(1) : 0;
+        const avgCorrection = corrections.length ? (corrections.reduce(sum, 0) / corrections.length).toFixed(1) : 0;
+        const avgPrep = preps.length ? (preps.reduce(sum, 0) / preps.length).toFixed(1) : 0;
+        const avgGlossary = glossary.length ? (glossary.reduce(sum, 0) / glossary.length).toFixed(1) : 0;
+
+        return { avgMeetings, avgCorrection, avgPrep, avgGlossary, total: reports.length };
+    }, [reports]);
+
+    if (!stats) return null;
+
+    return (
+        <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <div className="text-xl font-bold text-blue-700">{stats.avgMeetings}</div>
+                <div className="text-xs text-gray-600">{t('meetingsAttended')} (متوسط)</div>
+            </div>
+            <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                <div className="text-xl font-bold text-green-700">{stats.avgCorrection}%</div>
+                <div className="text-xs text-gray-600">{t('notebookCorrection')} (متوسط)</div>
+            </div>
+            <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
+                <div className="text-xl font-bold text-purple-700">{stats.avgPrep}%</div>
+                <div className="text-xs text-gray-600">{t('preparationBook')} (متوسط)</div>
+            </div>
+            <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                <div className="text-xl font-bold text-orange-700">{stats.avgGlossary}%</div>
+                <div className="text-xs text-gray-600">{t('questionsGlossary')} (متوسط)</div>
+            </div>
         </div>
     );
 };
