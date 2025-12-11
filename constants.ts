@@ -20,7 +20,7 @@ export const SUPERVISOR_PERMISSIONS: Permission[] = [
   'add_teacher',
   'edit_teacher',
   'delete_teacher',
-  'view_reports_for_specific_teachers',
+  // 'view_reports_for_specific_teachers', // Removed to allow full access to all teachers
   'create_general_report',
   'create_class_session_report',
   'create_special_report',
