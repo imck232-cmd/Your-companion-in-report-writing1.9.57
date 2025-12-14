@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { User, School, Permission } from '../types';
 import { INITIAL_USERS } from '../constants';
@@ -24,6 +25,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [selectedSchool, setSelectedSchool] = useLocalStorage<string | null>('selectedSchool', null);
   const [academicYear, setAcademicYear] = useLocalStorage<string>('academicYear', '');
   const [users, setUsers] = useLocalStorage<User[]>('users', INITIAL_USERS);
+
+  // Sync system users (supervisors/admins) from INITIAL_USERS to ensure permissions are up to date
+  // This fixes issues where stale permissions in localStorage block access (e.g. view_reports_for_specific_teachers)
+  useEffect(() => {
+    let usersUpdated = false;
+    let currentUserUpdated = false;
+
+    // 1. Update the main users list
+    const updatedUsers = users.map(u => {
+      const initialUser = INITIAL_USERS.find(iu => iu.id === u.id);
+      if (initialUser) {
+        // Check if critical fields differ (permissions, name, code)
+        if (JSON.stringify(u.permissions) !== JSON.stringify(initialUser.permissions) || 
+            u.code !== initialUser.code || 
+            u.name !== initialUser.name) {
+          usersUpdated = true;
+          // Merge to keep managedTeacherIds if modified, but enforce system permissions
+          return { ...u, ...initialUser, managedTeacherIds: u.managedTeacherIds }; 
+        }
+      }
+      return u;
+    });
+
+    if (usersUpdated) {
+      setUsers(updatedUsers);
+    }
+
+    // 2. Update currentUser if they are logged in and their data is stale
+    if (currentUser) {
+      const initialUser = INITIAL_USERS.find(iu => iu.id === currentUser.id);
+      if (initialUser) {
+         if (JSON.stringify(currentUser.permissions) !== JSON.stringify(initialUser.permissions)) {
+             setCurrentUser({ ...currentUser, ...initialUser, managedTeacherIds: currentUser.managedTeacherIds });
+             currentUserUpdated = true;
+         }
+      }
+    }
+  }, []); // Run once on mount
 
   const isAuthenticated = !!currentUser;
 
