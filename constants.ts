@@ -20,7 +20,7 @@ export const SUPERVISOR_PERMISSIONS: Permission[] = [
   'add_teacher',
   'edit_teacher',
   'delete_teacher',
-  // 'view_reports_for_specific_teachers', // Removed to allow full access to all teachers
+  // 'view_reports_for_specific_teachers', // Removed completely to allow full access to all teachers
   'create_general_report',
   'create_class_session_report',
   'create_special_report',
@@ -102,7 +102,9 @@ export const INITIAL_USERS: User[] = [
 
 // --- New: Permissions Hierarchy for User Management UI ---
 export const PERMISSIONS_HIERARCHY: { [key in Permission]?: Permission[] } = {
-    view_teachers: ['add_teacher', 'edit_teacher', 'delete_teacher', 'create_general_report', 'create_class_session_report', 'create_special_report', 'delete_report', 'view_reports_for_specific_teachers'],
+    // UPDATED: Removed 'view_reports_for_specific_teachers' from the children list.
+    // This allows granting 'view_teachers' (view all) without forcing the restriction.
+    view_teachers: ['add_teacher', 'edit_teacher', 'delete_teacher', 'create_general_report', 'create_class_session_report', 'create_special_report', 'delete_report'],
     view_supervisory_plan: [],
     view_syllabus_coverage: [],
     view_supervisory_tools: ['view_meeting_minutes', 'view_school_calendar', 'view_peer_visits', 'view_delivery_records'],
