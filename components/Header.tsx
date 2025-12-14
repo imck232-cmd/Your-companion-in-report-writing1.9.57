@@ -35,10 +35,10 @@ const Header: React.FC<HeaderProps> = ({ currentTheme, setTheme, selectedSchool,
         <div className="text-center w-full">
           <h1 className="text-3xl md:text-4xl font-bold">{t('appTitle')}</h1>
           {currentUser && <h2 className="text-xl font-semibold mt-1 text-yellow-300">{t('welcomeUser')} {currentUser.name}</h2>}
-          <p className="mt-2 text-sm md:text-base font-medium opacity-90">{t('headerSlogan')}</p>
+          <p className="mt-2 text-sm md:text-base font-medium text-yellow-200 drop-shadow-sm opacity-95">{t('headerSlogan')}</p>
           
           <div className="flex flex-wrap justify-center items-center gap-3 mt-3 mb-2">
-             <span className="text-xs md:text-sm font-light opacity-80">{t('preparedBy')}</span>
+             <span className="text-xs md:text-sm font-medium text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">{t('preparedBy')}</span>
              <a 
                 href="https://wa.me/967780804012" 
                 target="_blank" 

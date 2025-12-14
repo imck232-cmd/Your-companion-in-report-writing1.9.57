@@ -429,7 +429,7 @@ export const translations = {
     semesterAll: "الأول والثاني",
     // New Header Keys
     welcomeUser: "مرحبا:",
-    headerSlogan: "نسعد كثيرا بخدمتكم وتيسير أعمالكم، ونطمح بصحبتكم للأرتقاء والجودة في العمل.",
+    headerSlogan: "نسعد كثيرا بخدمتكم وتيسير أعمالكم، ونطمح بصحبتكم للارتقاء والجودة في العمل.",
   },
   en: {
     appTitle: "Your Report Writing Companion",
@@ -860,6 +860,6 @@ export const translations = {
     semesterAll: "First & Second",
     // New Header Keys
     welcomeUser: "مرحبا:",
-    headerSlogan: "نسعد كثيرا بخدمتكم وتيسير أعمالكم، ونطمح بصحبتكم للأرتقاء والجودة في العمل.",
+    headerSlogan: "نسعد كثيرا بخدمتكم وتيسير أعمالكم، ونطمح بصحبتكم للارتقاء والجودة في العمل.",
   }
 };
