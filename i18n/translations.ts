@@ -427,6 +427,9 @@ export const translations = {
     viewReport: "عرض التقرير",
     bookmark: "علامة مرجعية",
     semesterAll: "الأول والثاني",
+    // New Header Keys
+    welcomeUser: "مرحبا:",
+    headerSlogan: "نسعد كثيرا بخدمتكم وتيسير أعمالكم، ونطمح بصحبتكم للأرتقاء والجودة في العمل.",
   },
   en: {
     appTitle: "Your Report Writing Companion",
@@ -855,5 +858,8 @@ export const translations = {
     viewReport: "View Report",
     bookmark: "Bookmark",
     semesterAll: "First & Second",
+    // New Header Keys
+    welcomeUser: "مرحبا:",
+    headerSlogan: "نسعد كثيرا بخدمتكم وتيسير أعمالكم، ونطمح بصحبتكم للأرتقاء والجودة في العمل.",
   }
 };
