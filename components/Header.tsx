@@ -34,7 +34,11 @@ const Header: React.FC<HeaderProps> = ({ currentTheme, setTheme, selectedSchool,
       <div className="container mx-auto px-6 py-4 flex flex-col items-center gap-4">
         <div className="text-center w-full">
           <h1 className="text-3xl md:text-4xl font-bold">{t('appTitle')}</h1>
-          {currentUser && <h2 className="text-xl font-semibold mt-1 text-yellow-300">{t('welcomeUser')} {currentUser.name}</h2>}
+          {currentUser && (
+            <h2 className="text-xl font-semibold mt-1 text-yellow-300">
+              {t('welcomeUser')} {currentUser.name} <span className="text-white opacity-90">{t('welcomeUserSuffix')}</span>
+            </h2>
+          )}
           <p className="mt-2 text-sm md:text-base font-medium text-yellow-200 drop-shadow-sm opacity-95">{t('headerSlogan')}</p>
           
           <div className="flex flex-wrap justify-center items-center gap-3 mt-3 mb-2">

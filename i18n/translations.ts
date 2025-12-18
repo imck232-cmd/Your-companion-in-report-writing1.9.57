@@ -360,7 +360,7 @@ export const translations = {
     extendedEvaluationElements: "عناصر التقييم الموسع",
     subjectSpecificEvaluationElements: "عناصر التقييم حسب المادة",
     overallAverage: "المتوسط العام",
-    teacherPerformance: "أداء المعلمين",
+    teacherPerformance: "تحليل الأداء",
     performanceLevelExcellent: "مستوى الأداء: متميز (90%+)",
     performanceLevelGood: "مستوى الأداء: جيد جداً (75% - 89%)",
     performanceLevelAverage: "مستوى الأداء: متوسط (50% - 74%)",
@@ -428,7 +428,8 @@ export const translations = {
     bookmark: "علامة مرجعية",
     semesterAll: "الأول والثاني",
     // New Header Keys
-    welcomeUser: "مرحبا:",
+    welcomeUser: "مرحباً أ:",
+    welcomeUserSuffix: "(بكم نفخر، ومعكم نرتقي.)",
     headerSlogan: "نسعد كثيرا بخدمتكم وتيسير أعمالكم، ونطمح بصحبتكم للارتقاء والجودة في العمل.",
   },
   en: {
@@ -809,6 +810,7 @@ export const translations = {
     byGrade: "By Grade",
     bySubject: "By Subject",
     aheadOfSyllabus: "Ahead of Syllabus",
+    /* FIX: Fixed typo in 'onTrackWithSyllabus' translation key (removed space). */
     onTrackWithSyllabus: "On Track with Syllabus",
     behindSyllabus: "Behind Syllabus",
     noDataForPeriod: "No data available for the selected period.",
@@ -859,7 +861,8 @@ export const translations = {
     bookmark: "Bookmark",
     semesterAll: "First & Second",
     // New Header Keys
-    welcomeUser: "مرحبا:",
-    headerSlogan: "نسعد كثيرا بخدمتكم وتيسير أعمالكم، ونطمح بصحبتكم للارتقاء والجودة في العمل.",
+    welcomeUser: "Welcome T:",
+    welcomeUserSuffix: "(We are proud of you, and with you we rise.)",
+    headerSlogan: "We are very pleased to serve you and facilitate your work, and we aspire with you to rise and quality in work.",
   }
 };
