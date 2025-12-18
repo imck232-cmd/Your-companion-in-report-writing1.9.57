@@ -26,39 +26,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [academicYear, setAcademicYear] = useLocalStorage<string>('academicYear', '');
   const [users, setUsers] = useLocalStorage<User[]>('users', INITIAL_USERS);
 
-  // Sync system users (supervisors/admins) from INITIAL_USERS to ensure permissions are up to date
-  // This fixes issues where stale permissions in localStorage block access (e.g. view_reports_for_specific_teachers)
+  // Sync logic: Ensure new users from INITIAL_USERS are added to the local state
   useEffect(() => {
     let usersUpdated = false;
-    let currentUserUpdated = false;
+    
+    // 1. Merge logic: add missing users and update existing ones
+    const currentUsersMap = new Map(users.map(u => [u.id, u]));
+    const mergedUsers = [...users];
 
-    // 1. Update the main users list
-    const updatedUsers = users.map(u => {
-      const initialUser = INITIAL_USERS.find(iu => iu.id === u.id);
-      if (initialUser) {
-        // Check if critical fields differ (permissions, name, code)
-        if (JSON.stringify(u.permissions) !== JSON.stringify(initialUser.permissions) || 
-            u.code !== initialUser.code || 
-            u.name !== initialUser.name) {
-          usersUpdated = true;
-          // Merge to keep managedTeacherIds if modified, but enforce system permissions
-          return { ...u, ...initialUser, managedTeacherIds: u.managedTeacherIds }; 
+    INITIAL_USERS.forEach(iu => {
+        if (!currentUsersMap.has(iu.id)) {
+            // Add missing user (like newly added 'آية فاتق')
+            mergedUsers.push(iu);
+            usersUpdated = true;
+        } else {
+            // Update existing user if permissions or code changed in constants
+            const existing = currentUsersMap.get(iu.id)!;
+            if (JSON.stringify(existing.permissions) !== JSON.stringify(iu.permissions) || 
+                existing.code !== iu.code || 
+                existing.name !== iu.name) {
+                const idx = mergedUsers.findIndex(u => u.id === iu.id);
+                mergedUsers[idx] = { ...existing, ...iu, managedTeacherIds: existing.managedTeacherIds };
+                usersUpdated = true;
+            }
         }
-      }
-      return u;
     });
 
     if (usersUpdated) {
-      setUsers(updatedUsers);
+      setUsers(mergedUsers);
     }
 
     // 2. Update currentUser if they are logged in and their data is stale
     if (currentUser) {
       const initialUser = INITIAL_USERS.find(iu => iu.id === currentUser.id);
       if (initialUser) {
-         if (JSON.stringify(currentUser.permissions) !== JSON.stringify(initialUser.permissions)) {
+         if (JSON.stringify(currentUser.permissions) !== JSON.stringify(initialUser.permissions) || 
+             currentUser.code !== initialUser.code || 
+             currentUser.name !== initialUser.name) {
              setCurrentUser({ ...currentUser, ...initialUser, managedTeacherIds: currentUser.managedTeacherIds });
-             currentUserUpdated = true;
          }
       }
     }
@@ -67,7 +72,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = !!currentUser;
 
   const login = (username: string, code: string, school: string, year: string): boolean => {
-    const user = users.find(u => u.name === username.trim() && u.code === code.trim());
+    // Re-check from the latest users state to ensure "آية فاتق" is found
+    const user = users.find(u => u.name.trim() === username.trim() && u.code.trim() === code.trim());
     if (user) {
       setCurrentUser(user);
       setSelectedSchool(school);
@@ -80,7 +86,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setCurrentUser(null);
     setSelectedSchool(null);
-    // We keep academicYear so it's pre-filled on next login
   };
 
   const hasPermission = (permission: Permission): boolean => {
