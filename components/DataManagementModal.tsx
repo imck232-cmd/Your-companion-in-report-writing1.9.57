@@ -86,7 +86,6 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
         try {
             let exportData: { [key: string]: any } = {};
             
-            // Collect all potential keys
             const keysToExport = ['teachers', 'reports', 'schools', 'customCriteria', 'specialReportTemplates', 'syllabusPlans', 'tasks', 'meetings', 'peerVisits', 'deliverySheets', 'bulkMessages', 'syllabusCoverageReports', 'supervisoryPlans', 'hiddenCriteria', 'academicYear', 'theme'];
 
             if (exportMode === 'all') {
@@ -95,7 +94,6 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
                     if (val) exportData[key] = val;
                 });
             } else {
-                // Filtered Export Logic
                 keysToExport.forEach(key => {
                     const rawVal = localStorage.getItem(key);
                     if (!rawVal) return;
@@ -110,7 +108,7 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
                     if (exportMode === 'teacher' && selectedTeacherId) {
                         if (key === 'teachers') filtered = data.filter((t: any) => t.id === selectedTeacherId);
                         else if (key === 'reports' || key === 'syllabusCoverageReports') filtered = data.filter((r: any) => r.teacherId === selectedTeacherId);
-                        else if (key === 'syllabusPlans') filtered = data; // Keep for context or filter by subject? Usually keep.
+                        else if (key === 'syllabusPlans') filtered = data;
                     } 
                     else if (exportMode === 'school' && selectedSchoolName) {
                         if (key === 'teachers' || key === 'reports' || key === 'syllabusPlans' || key === 'syllabusCoverageReports' || key === 'specialReportTemplates') {
@@ -164,15 +162,12 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
                     return;
                 }
 
-                // 1. Create Archive of current state
                 createAutoBackup();
 
-                // 2. Clear current storage (except backups)
                 const backupString = localStorage.getItem('app_history_backups');
                 localStorage.clear();
                 if (backupString) localStorage.setItem('app_history_backups', backupString);
 
-                // 3. Inject new data
                 Object.keys(parsed).forEach(key => {
                     if (key !== 'app_history_backups') {
                         localStorage.setItem(key, parsed[key]);
@@ -213,14 +208,14 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
 
     if (!isOpen) return null;
 
-    const OptionCard = ({ mode, title, subtitle, icon }: { mode: ExportMode, title: string, subtitle: string, icon: React.ReactNode }) => (
+    const OptionCard = ({ mode, title, subtitle }: { mode: ExportMode, title: string, subtitle: string }) => (
         <div 
             onClick={() => setExportMode(mode)}
             className={`cursor-pointer p-4 border-2 rounded-xl transition-all flex items-start gap-3 relative ${exportMode === mode ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-gray-200 hover:border-primary/50'}`}
         >
             <div className="flex-grow">
-                <h4 className="font-bold text-gray-800 text-sm md:text-base">{title}</h4>
-                <p className="text-xs text-gray-500">{subtitle}</p>
+                <h4 className="font-bold text-black text-sm md:text-base">{title}</h4>
+                <p className="text-xs text-black/70">{subtitle}</p>
             </div>
             <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${exportMode === mode ? 'border-primary bg-primary' : 'border-gray-300'}`}>
                 {exportMode === mode && <div className="w-2 h-2 bg-white rounded-full"></div>}
@@ -236,7 +231,7 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
                 <div className="p-6 border-b flex justify-between items-start bg-gray-50/50">
                     <div>
                         <h2 className="text-2xl font-bold text-primary">{t('dataManagementTransfer')}</h2>
-                        <p className="text-sm text-gray-500 mt-1">{t('dataManagementSubtitle')}</p>
+                        <p className="text-sm text-black/60 mt-1">{t('dataManagementSubtitle')}</p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors text-3xl">&times;</button>
                 </div>
@@ -249,25 +244,25 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
                              <div className="p-2 bg-green-100 text-green-700 rounded-lg">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
                              </div>
-                             <h3 className="text-lg font-bold text-gray-800">{t('exportData')}</h3>
+                             <h3 className="text-lg font-bold text-black">{t('exportData')}</h3>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <OptionCard mode="all" title={t('exportModeAll')} subtitle={t('exportModeAllSubtitle')} icon={null} />
-                            <OptionCard mode="teacher" title={t('exportModeTeacher')} subtitle={t('exportModeTeacherSubtitle')} icon={null} />
-                            <OptionCard mode="work_type" title={t('exportModeWorkType')} subtitle={t('exportModeWorkTypeSubtitle')} icon={null} />
-                            <OptionCard mode="school" title={t('exportModeSchool')} subtitle={t('exportModeSchoolSubtitle')} icon={null} />
+                            <OptionCard mode="all" title={t('exportModeAll')} subtitle={t('exportModeAllSubtitle')} />
+                            <OptionCard mode="teacher" title={t('exportModeTeacher')} subtitle={t('exportModeTeacherSubtitle')} />
+                            <OptionCard mode="work_type" title={t('exportModeWorkType')} subtitle={t('exportModeWorkTypeSubtitle')} />
+                            <OptionCard mode="school" title={t('exportModeSchool')} subtitle={t('exportModeSchoolSubtitle')} />
                         </div>
 
                         {/* Conditional Selectors */}
                         <div className="animate-fadeIn">
                             {exportMode === 'teacher' && (
                                 <div className="p-4 bg-gray-50 border rounded-xl space-y-2">
-                                    <label className="text-sm font-bold text-gray-700">{t('selectTeacherToExport')}</label>
+                                    <label className="text-sm font-bold text-black">{t('selectTeacherToExport')}</label>
                                     <select 
                                         value={selectedTeacherId} 
                                         onChange={e => setSelectedTeacherId(e.target.value)}
-                                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none text-black font-semibold"
                                     >
                                         <option value="">-- اختر المعلم --</option>
                                         {allTeachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -276,11 +271,11 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
                             )}
                             {exportMode === 'school' && (
                                 <div className="p-4 bg-gray-50 border rounded-xl space-y-2">
-                                    <label className="text-sm font-bold text-gray-700">{t('selectSchoolToExport')}</label>
+                                    <label className="text-sm font-bold text-black">{t('selectSchoolToExport')}</label>
                                     <select 
                                         value={selectedSchoolName} 
                                         onChange={e => setSelectedSchoolName(e.target.value)}
-                                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none text-black font-semibold"
                                     >
                                         <option value="">-- اختر المدرسة --</option>
                                         {allSchools.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
@@ -289,11 +284,11 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
                             )}
                             {exportMode === 'work_type' && (
                                 <div className="p-4 bg-gray-50 border rounded-xl space-y-2">
-                                    <label className="text-sm font-bold text-gray-700">{t('selectWorkTypeToExport')}</label>
+                                    <label className="text-sm font-bold text-black">{t('selectWorkTypeToExport')}</label>
                                     <select 
                                         value={selectedWorkType} 
                                         onChange={e => setSelectedWorkType(e.target.value)}
-                                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary outline-none text-black font-semibold"
                                     >
                                         <option value="general">{t('generalEvaluation')}</option>
                                         <option value="class_session">{t('classSessionEvaluation')}</option>
@@ -345,14 +340,14 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                             </div>
                             <div className="text-center">
-                                <p className="font-bold text-gray-700">{t('dragAndDropJson')}</p>
-                                <p className="text-xs text-gray-400 mt-1">{t('supportedFilesJson')}</p>
+                                <p className="font-bold text-black">{t('dragAndDropJson')}</p>
+                                <p className="text-xs text-black/60 mt-1">{t('supportedFilesJson')}</p>
                             </div>
                         </div>
 
                         <button 
                             onClick={() => fileInputRef.current?.click()}
-                            className="w-full py-4 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-bold flex items-center justify-center gap-3 shadow active:scale-95"
+                            className="w-full py-4 bg-gray-200 text-black rounded-xl hover:bg-gray-300 transition-all font-bold flex items-center justify-center gap-3 shadow active:scale-95"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                             {t('importFileBtn')}
@@ -362,7 +357,7 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
                     {/* Backups List */}
                     {backups.length > 0 && (
                         <div className="border-t pt-8 space-y-4">
-                            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-black flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
                                 {t('backupsHistory')}
                             </h3>
@@ -370,8 +365,8 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
                                 {backups.map((backup, index) => (
                                     <div key={backup.id} className="p-3 bg-gray-50 border rounded-xl flex justify-between items-center group">
                                         <div>
-                                            <p className="font-bold text-sm text-gray-800">{backup.label} (#{backups.length - index})</p>
-                                            <p className="text-xs text-gray-500">{new Date(backup.timestamp).toLocaleString('ar-YE')}</p>
+                                            <p className="font-bold text-sm text-black">{backup.label} (#{backups.length - index})</p>
+                                            <p className="text-xs text-black/70">{new Date(backup.timestamp).toLocaleString('ar-YE')}</p>
                                         </div>
                                         <button 
                                             onClick={() => handleRestore(backup)}
@@ -388,12 +383,11 @@ const DataManagementModal: React.FC<DataManagementModalProps> = ({ isOpen, onClo
                     {error && <p className="text-red-600 text-center font-bold animate-shake">{error}</p>}
                 </div>
 
-                {/* Footer Footer */}
                 <div className="p-6 bg-gray-50 border-t flex justify-between items-center">
-                    <button onClick={onClose} className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all font-bold shadow-sm">
+                    <button onClick={onClose} className="px-8 py-3 bg-white border border-gray-300 text-black rounded-xl hover:bg-gray-100 transition-all font-bold shadow-sm">
                         {t('cancel')}
                     </button>
-                    <p className="text-xs text-gray-400 italic">برنامج رفيقك في كتابة التقارير v1.9.57</p>
+                    <p className="text-xs text-black/40 italic">برنامج رفيقك في كتابة التقارير v1.9.57</p>
                 </div>
             </div>
         </div>
