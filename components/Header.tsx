@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { THEMES } from '../constants';
+import DataManagementModal from './DataManagementModal';
 
 interface HeaderProps {
     currentTheme: string;
@@ -23,11 +24,15 @@ const WhatsAppIcon: React.FC = () => (
     </svg>
 );
 
-
 const Header: React.FC<HeaderProps> = ({ currentTheme, setTheme, selectedSchool, onChangeSchool }) => {
   const { t, language, toggleLanguage } = useLanguage();
   const { academicYear, logout, hasPermission, currentUser } = useAuth();
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [isDataModalOpen, setIsDataModalOpen] = useState(false);
+
+  // Define allowed users for data management
+  const allowedNames = ["مجيب الرحمن الأحلسي", "وداد الشرعبي", "صالح الرفاعي", "إبراهيم دخان"];
+  const canManageData = hasPermission('all') || (currentUser && allowedNames.includes(currentUser.name));
 
   return (
     <header className="bg-header-bg text-header-text shadow-lg" style={{ backgroundColor: 'var(--color-header-bg)', color: 'var(--color-header-text)' }}>
@@ -76,6 +81,18 @@ const Header: React.FC<HeaderProps> = ({ currentTheme, setTheme, selectedSchool,
                     {t('changeSchool')}
                 </button>
             )}
+            
+            {/* New Data Management Button */}
+            {canManageData && (
+                <button
+                    onClick={() => setIsDataModalOpen(true)}
+                    className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-all text-sm flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    {t('dataManagement')}
+                </button>
+            )}
+
             <button
                 onClick={toggleLanguage}
                 className="bg-primary-light hover:bg-opacity-80 text-white font-bold py-2 px-5 rounded-lg transition-all duration-300 transform hover:scale-105"
@@ -122,6 +139,12 @@ const Header: React.FC<HeaderProps> = ({ currentTheme, setTheme, selectedSchool,
             </button>
         </div>
       </div>
+      
+      {/* Render Data Modal */}
+      <DataManagementModal 
+        isOpen={isDataModalOpen} 
+        onClose={() => setIsDataModalOpen(false)} 
+      />
     </header>
   );
 };
